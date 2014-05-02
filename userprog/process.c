@@ -40,33 +40,6 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 	
-	//int fn_size = 0;
-	//for(; fn_copy != NULL; ++fn_copy)
-		//	++fn_size;
-
-
-	
-	
-	char * token, * save_ptr;
-	int size = 0;
-
-	for(token = strtok_r(fn_copy, " ", &save_ptr); token != NULL;
-			token = strtok_r(NULL, " ", &save_ptr))
-		++size;
-	
-	char * array_of_words[size];
-	
-	strlcpy(fn_copy, file_name, PGSIZE);
-	token = NULL;
-	save_ptr = NULL;
-	int wordIndex = 0;
-	for(token = strtok_r(fn_copy, " ", &save_ptr); token != NULL;
-			token = strtok_r(NULL, " ", &save_ptr))
-	{
-		array_of_words[wordIndex] = token;
-		++wordIndex;
-	}
-  	
 	
 	
 	/* Create a new thread to execute FILE_NAME. */
@@ -253,7 +226,29 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  file = filesys_open (file_name);
+	  //Parsing arguments
+		char * fn_copy;
+		strlcpy(fn_copy, file_name, PGSIZE);
+		int size = 0;
+
+		for(token = strtok_r(fn_copy, " ", &save_ptr); token != NULL;
+		token = strtok_r(NULL, " ", &save_ptr))
+			++size;
+
+		char * array_of_words[size];
+
+		strlcpy(fn_copy, file_name, PGSIZE);
+		token = NULL;
+		save_ptr = NULL;
+		int wordIndex = 0;
+		for(token = strtok_r(fn_copy, " ", &save_ptr); token != NULL;
+		token = strtok_r(NULL, " ", &save_ptr))
+		{
+			array_of_words[wordIndex] = token;
+			++wordIndex;
+		} 
+
+  file = filesys_open (array_of_words[0]);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
