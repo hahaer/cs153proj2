@@ -248,6 +248,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 			++wordIndex;
 		} 
 
+
   file = filesys_open (array_of_words[0]);
   if (file == NULL) 
     {
@@ -330,12 +331,51 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
+	
+	size_t * array_of_add = size_t[size];
+
+	void * et = esp;
+	int counter = 0;
+	for(int i = 0; i < size ;++i)
+	{	
+		int j = 0;
+		for(; array_of_words[i][j] != NULL; ++j);
+		++j;
+		et = (char*)et - j;
+		array_of_add[i] = reinterpret_cast<size_t>(et);
+		memcpy(et, array_of_words[i], j);
+	}
+	et = (char*)et - 1;
+	size_t a = reinterpret_cast<size_t>(et);
+	int modder = a % 4;
+	a = a - modder;
+	et = (void*)a
+	memset(et, '\0', modder);
+	et = (char*)et - 4;
+	memset(et, '\0', 4);
+
+	for(int i = size-1; i >= 0; ++i)
+	{
+			memcpy(et, array_of_add[i], 4);
+			et = (char*)et - 4;
+	}
+	
+	a = reinterpret_cast<size_t>(et);
+	et = (char*)et - 4;
+	memcpy(et, a, 4);
+	
+
+	et = (char*)et - 4;
+	memcpy(et, size, 4);
+	
+	et = (char*)et - 4;
+	memset(et, '\0', 4);
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
   success = true;
-
+	esp = et;
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
