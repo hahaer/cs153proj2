@@ -218,18 +218,22 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
+	
+	char * token = NULL;
+	char * save_ptr = NULL;
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
-
+	{
   /* Open executable file. */
 	  //Parsing arguments
 		char * fn_copy;
 		strlcpy(fn_copy, file_name, PGSIZE);
 		int size = 0;
+
 
 		for(token = strtok_r(fn_copy, " ", &save_ptr); token != NULL;
 		token = strtok_r(NULL, " ", &save_ptr))
@@ -332,50 +336,57 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (!setup_stack (esp))
     goto done;
 	
-	size_t * array_of_add = size_t[size];
+	size_t * array_of_add[size];
 
 	void * et = esp;
-	int counter = 0;
-	for(int i = 0; i < size ;++i)
+	int i2 = 0;
+	for(; i2 < size ;++i2)
 	{	
 		int j = 0;
-		for(; array_of_words[i][j] != NULL; ++j);
+		for(; array_of_words[i2][j] != '\0'; ++j);
 		++j;
 		et = (char*)et - j;
-		array_of_add[i] = reinterpret_cast<size_t>(et);
-		memcpy(et, array_of_words[i], j);
+		array_of_add[i2] = (size_t*)et;
+		memcpy(et, array_of_add[i2] , j);
 	}
+	
 	et = (char*)et - 1;
-	size_t a = reinterpret_cast<size_t>(et);
+	size_t a = (size_t)((size_t*)et);
 	int modder = a % 4;
 	a = a - modder;
-	et = (void*)a
+	et = (void*)a;
 	memset(et, '\0', modder);
 	et = (char*)et - 4;
 	memset(et, '\0', 4);
-
-	for(int i = size-1; i >= 0; ++i)
+	
+	int l = size - 1;
+	for(; l >= 0; ++l)
 	{
-			memcpy(et, array_of_add[i], 4);
+			memcpy(et, array_of_add[l], 4);
 			et = (char*)et - 4;
 	}
 	
-	a = reinterpret_cast<size_t>(et);
+	size_t * b = (size_t*)et;
 	et = (char*)et - 4;
-	memcpy(et, a, 4);
+	memcpy(et, b, 4);
 	
 
+	int * temp_size = &size;
 	et = (char*)et - 4;
-	memcpy(et, size, 4);
+	memcpy(et, temp_size, 4);
 	
 	et = (char*)et - 4;
 	memset(et, '\0', 4);
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
-
+	
   success = true;
 	esp = et;
+	char * buffer[1024];
+	int bytes_read = read(esp, buffer, sizeof buffer);
+	hex_dump(esp, buffer, bytes, true);
+ }
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
