@@ -382,10 +382,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   *eip = (void (*) (void)) ehdr.e_entry;
 	
   success = true;
-	esp = et;
+	esp = (void*)et;
 	char * buffer[1024];
-	int bytes_read = read(esp, buffer, sizeof buffer);
-	hex_dump(esp, buffer, bytes_read, true);
+	//int bytes_read = read(esp, buffer, sizeof buffer);
+	hex_dump(esp, buffer, 128, true);
  }
  done:
   /* We arrive here whether the load is successful or not. */
