@@ -385,7 +385,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 	esp = et;
 	char * buffer[1024];
 	int bytes_read = read(esp, buffer, sizeof buffer);
-	hex_dump(esp, buffer, bytes, true);
+	hex_dump(esp, buffer, bytes_read, true);
  }
  done:
   /* We arrive here whether the load is successful or not. */
