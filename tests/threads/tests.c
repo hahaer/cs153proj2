@@ -44,6 +44,7 @@ run_test (const char *name)
       {
         test_name = name;
         msg ("begin");
+				//printf("\n t->func %p \n", t->function);
         t->function ();
         msg ("end");
         return;

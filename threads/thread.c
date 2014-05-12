@@ -209,6 +209,11 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+	//printf("\n t_name %s \n", t->name);
+	//printf("\n t_func %p \n", kf->function);
+	t->function = kf->function;
+	t->aux = kf->aux;
+
   return tid;
 }
 
@@ -566,6 +571,7 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
+	//cur->function(cur->aux);
 }
 
 /* Returns a tid to use for a new thread. */

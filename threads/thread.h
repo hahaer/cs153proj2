@@ -5,6 +5,16 @@
 #include <list.h>
 #include <stdint.h>
 
+static int fd_counter = 2;
+
+struct file_struct
+{
+	int fd;
+	struct file * f;
+};
+
+static struct file_struct * fs[200]; //malloc(200 * sizeof(file_struct));
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -80,6 +90,8 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+typedef void thread_func (void *aux);
+
 struct thread
   {
     /* Owned by thread.c. */
@@ -89,8 +101,9 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-
-    /* Shared between thread.c and synch.c. */
+		thread_func * function;             /* Custom function pointer */
+    void * aux;
+		/* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
@@ -113,7 +126,7 @@ void thread_start (void);
 void thread_tick (void);
 void thread_print_stats (void);
 
-typedef void thread_func (void *aux);
+//typedef void thread_func (void *aux);
 tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
 void thread_block (void);
