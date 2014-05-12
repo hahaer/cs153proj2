@@ -32,9 +32,9 @@ syscall_handler (struct intr_frame *f UNUSED)
   //printf ("system call!\n");
   //thread_exit ();
 	uint32_t * esp = f->esp;
-	//printf("syscall_handler\n");
-	if(esp == NULL || !is_user_vaddr(esp) || 
-		!pagedir_get_page(thread_current()->pagedir, esp))
+	
+	if(esp == NULL || is_kernel_vaddr(esp) || 
+		pagedir_get_page(thread_current()->pagedir, esp) == NULL)
 	{
 		uintptr_t ptr; 
 		ptr = pg_no(esp);
@@ -42,12 +42,14 @@ syscall_handler (struct intr_frame *f UNUSED)
 		thread_exit();
 	}
 	uint32_t syscall_num = *esp;
+	printf("syscall_num: %i \n", (int)syscall_num);
 	if(syscall_num == SYS_HALT)
 	{
 		shutdown_power_off();
 	}
 	else if(syscall_num == SYS_EXIT)
 	{
+		printf("syscall_exit\n");
 		int status = *(esp + 1);
 		thread_current()->status = status;
 		thread_exit();
@@ -70,7 +72,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 	}
 	else if(syscall_num == SYS_WAIT)
 	{
-		process_wait(0);
+		tid_t cpid = (tid_t)*(esp + 1);
+		process_wait(cpid);
 	}
 	else if(syscall_num == SYS_CREATE)
 	{
@@ -175,16 +178,18 @@ syscall_handler (struct intr_frame *f UNUSED)
 	}
 	else if(syscall_num == SYS_WRITE)
 	{
+		printf("syscall write\n");
 		int fd = (int)*(esp + 1);
-		void * buffer = (void*)*(esp + 1);
-		unsigned size = (unsigned)*(esp+1);
+		void * buffer = (void*)*(esp + 2);
+		unsigned size = (unsigned)*(esp+3);
 		int i = 0;
 		struct file * fi = NULL;
-
+		printf("fd: %i\n", fd);
 		if(fd == 1)
 		{
 			putbuf(buffer, size);
 			f->eax = size;
+			printf("wrote to console\n");
 			return;
 		}
 

@@ -92,6 +92,9 @@ typedef int tid_t;
    blocked state is on a semaphore wait list. */
 typedef void thread_func (void *aux);
 
+struct list get_all_list(void);
+
+
 struct thread
   {
     /* Owned by thread.c. */

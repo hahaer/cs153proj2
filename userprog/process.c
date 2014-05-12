@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
+#include "lib/kernel/list.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -83,6 +84,21 @@ start_process(void *file_name_)
 	NOT_REACHED ();
 }
 
+bool
+still_running ( tid_t cpid )
+{
+	struct list_elem cu = (get_all_list().head);
+	struct list_elem * current = &cu;
+	for(; current != NULL; current = current->next)
+	{
+		if(cpid == list_entry(current, struct thread, elem)->tid)
+			return true;
+	}
+	return false;
+}
+		
+
+
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
    exception), returns -1.  If TID is invalid or if it was not a
@@ -93,16 +109,12 @@ start_process(void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t cpid) 
 {
   //while(1);
-	int i = 0;
-	while(thread_current()->status != THREAD_DYING)
-	{
-		++i;
+	while(thread_current()->status != THREAD_DYING || still_running(cpid))
+	{		
 		thread_yield();
-		if(i > 10000)
-			break;
 	}
 	return 0;
 }
@@ -477,8 +489,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp, const char * filename, char ** saveptr) 
 {
-	char * start_sp = (size_t)((size_t*)(*esp));
-	printf("start_sp: %p\n", start_sp);
   //printf("esp: %p\n", *esp);
 	uint8_t *kpage;
   bool success = false;
@@ -494,6 +504,7 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
 		{
         palloc_free_page (kpage);
     }
+	char * start_sp = (size_t)((size_t*)(*esp));
   //return success;
 	 
 	 //declaring the initial states
@@ -572,7 +583,7 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
 	 char * buffer[1024];	
 	 
 	 //esp = (int)esp;
-	// hex_dump(*esp, buffer, 1, true);
+	 //hex_dump(*esp, buffer, 1, true);
 		
 	 esp = (void*)esp;
 	 char * end_sp = (size_t)((size_t*)(*esp));

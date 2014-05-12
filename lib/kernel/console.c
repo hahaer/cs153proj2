@@ -184,8 +184,9 @@ vprintf_helper (char c, void *char_cnt_)
 static void
 putchar_have_lock (uint8_t c) 
 {
+	
   ASSERT (console_locked_by_current_thread ());
-  write_cnt++;
+	write_cnt++;
   serial_putc (c);
   vga_putc (c);
 }
