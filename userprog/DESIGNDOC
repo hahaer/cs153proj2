@@ -1,0 +1,168 @@
+			+--------------------------+
+			|		    CS 153         |
+			| PROJECT 2: USER PROGRAMS |
+			| 	   DESIGN DOCUMENT     |
+			+--------------------------+
+
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+Calvin Nguyen <cnguy072@ucr.edu>
+Ryan Sabik <rsabi001@ucr.edu>
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+			   ARGUMENT PASSING
+			   ================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+No extensions to any existing structs were made.
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  How do
+>> you arrange for the elements of argv[] to be in the right order?
+>> How do you avoid overflowing the stack page?
+
+We use strtok_r() in a for loop to tokenize the argv vector using the 
+delimiter " ". For each iteration of the loop, we store the first character 
+of each token into an array. We use reverse iteration on this array to 
+store argv[] in the right order. We did not handle any cases regarding
+overflow.
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+strtok_r() is used to gain access to the internal variable in strtok().
+Between successive calls to strtok_r(), the value of the variable points
+to the next location strtok_r() operates on. In our case, we use this
+functionality to keep track of all these pointers for future use. 
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+The shell already has parsing mechanisms implemented. Leaving this to the
+kernel is likely to be less error prone, and frees up time for the kernel
+to do other operations.
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+thread.c:
+    struct list get_all_list() {...}; 
+    Function returns the all_list member variable.
+    
+    
+
+>> B2: Describe how file descriptors are associated with open files.
+>> Are file descriptors unique within the entire OS or just within a
+>> single process?
+
+File descriptors to files are stored into a table upon opening. File 
+descriptors are unique within a single process.
+
+---- ALGORITHMS ----
+
+>> B3: Describe your code for reading and writing user data from the
+>> kernel.
+
+When a user thread passes a call, the kernel takes the pointer and 
+validates it. In our project, we only implemented writing to console, not
+writing to kernel.
+
+>> B4: Suppose a system call causes a full page (4,096 bytes) of data
+>> to be copied from user space into the kernel.  What is the least
+>> and the greatest possible number of inspections of the page table
+>> (e.g. calls to pagedir_get_page()) that might result?  What about
+>> for a system call that only copies 2 bytes of data?  Is there room
+>> for improvement in these numbers, and how much?
+
+>> B5: Briefly describe your implementation of the "wait" system call
+>> and how it interacts with process termination.
+
+Our implementation of system call wait calls process_wait(). This function
+checks if the status of the current thread is not THREAD_DYING or is 
+not included in the list of all threads by checking against the all_list.
+If the thread is neither, then thread_yield() is called.
+
+>> B6: Any access to user program memory at a user-specified address
+>> can fail due to a bad pointer value.  Such accesses must cause the
+>> process to be terminated.  System calls are fraught with such
+>> accesses, e.g. a "write" system call requires reading the system
+>> call number from the user stack, then each of the call's three
+>> arguments, then an arbitrary amount of user memory, and any of
+>> these can fail at any point.  This poses a design and
+>> error-handling problem: how do you best avoid obscuring the primary
+>> function of code in a morass of error-handling?  Furthermore, when
+>> an error is detected, how do you ensure that all temporarily
+>> allocated resources (locks, buffers, etc.) are freed?  In a few
+>> paragraphs, describe the strategy or strategies you adopted for
+>> managing these issues.  Give an example.
+
+Most implementations of system calls have a block of error handling
+code prior to any execution of the system call. In other cases, a helper
+function may call some error handling code. We did not handle any cases
+for freeing allocated resources.
+
+---- SYNCHRONIZATION ----
+
+>> B7: The "exec" system call returns -1 if loading the new executable
+>> fails, so it cannot return before the new executable has completed
+>> loading.  How does your code ensure this?  How is the load
+>> success/failure status passed back to the thread that calls "exec"?
+
+As long as the pointer given to process_execute() is a mapped user address,
+process_execute() is run. The returned value from this function is stored
+into the interrupt frame's EAX register.
+The status is put into the interrupt frame's EAX register.
+
+>> B8: Consider parent process P with child process C.  How do you
+>> ensure proper synchronization and avoid race conditions when P
+>> calls wait(C) before C exits?  After C exits?  How do you ensure
+>> that all resources are freed in each case?  How about when P
+>> terminates without waiting, before C exits?  After C exits?  Are
+>> there any special cases?
+
+We did not handle any cases relating to synchronization.
+
+---- RATIONALE ----
+
+>> B9: Why did you choose to implement access to user memory from the
+>> kernel in the way that you did?
+
+In general, we just use the interrupt frame's stack pointer ESP to pull
+any arguments that we need. Since next arguments are sequential, we do
+pointer arithmetic to obtain subsequent arguments that may be needed.
+
+>> B10: What advantages or disadvantages can you see to your design
+>> for file descriptors?
+
+Our implementation is easy to implement and simple to understand. It
+does not scale well, as searches through the array for the files is an
+O(N) operation, and removing them is also an O(N), as well as adding one
+is an O(N) operation.
+
+>> B11: The default tid_t to pid_t mapping is the identity mapping.
+>> If you changed it, what advantages are there to your approach?
+
+Did not make any changes, current implementation satisfactory.
