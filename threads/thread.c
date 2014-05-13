@@ -28,10 +28,12 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
-struct list
+static void schedule(void);
+
+struct list *
 get_all_list()
 {
-	return all_list;
+	return &all_list;
 }
 
 
@@ -74,7 +76,7 @@ static struct thread *next_thread_to_run (void);
 static void init_thread (struct thread *, const char *name, int priority);
 static bool is_thread (struct thread *) UNUSED;
 static void *alloc_frame (struct thread *, size_t size);
-static void schedule (void);
+//static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
@@ -189,7 +191,7 @@ thread_create (const char *name, int priority,
 
   /* Initialize thread. */
   init_thread (t, name, priority);
-  tid = t->tid = allocate_tid ();
+	tid = t->tid = allocate_tid ();
 
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack' 
@@ -311,7 +313,8 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+	thread_current ()->status = THREAD_DYING;
+	//printf("before schedule\n");
   schedule ();
   NOT_REACHED ();
 }
@@ -332,6 +335,21 @@ thread_yield (void)
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
+}
+
+bool
+still_running(tid_t cpid)
+{
+	struct list_elem *e;
+	for(e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
+	{
+		struct thread * t = list_entry(e, struct thread, allelem);
+		if(cpid == t->tid)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
@@ -477,7 +495,8 @@ init_thread (struct thread *t, const char *name, int priority)
 
   memset (t, 0, sizeof *t);
   t->status = THREAD_BLOCKED;
-  strlcpy (t->name, name, sizeof t->name);
+	char * saveptr[100];
+  strlcpy (t->name, strtok_r(name, " ", saveptr), sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
@@ -567,7 +586,9 @@ thread_schedule_tail (struct thread *prev)
 static void
 schedule (void) 
 {
-  struct thread *cur = running_thread ();
+	
+	struct thread *cur = running_thread ();
+	//printf("before nttr\n");
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
 
@@ -578,7 +599,6 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
-	//cur->function(cur->aux);
 }
 
 /* Returns a tid to use for a new thread. */

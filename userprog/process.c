@@ -43,14 +43,11 @@ process_execute (const char *file_name)
 	
 	
 	/* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+	tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
 	if (tid == TID_ERROR)
 	{
     palloc_free_page (fn_copy); 
 	}
-	else
-	{
-		}
 
 	return tid;
 }
@@ -67,6 +64,7 @@ start_process(void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+	
   success = load (file_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
@@ -84,20 +82,7 @@ start_process(void *file_name_)
 	NOT_REACHED ();
 }
 
-bool
-still_running ( tid_t cpid )
-{
-	struct list_elem cu = (get_all_list().head);
-	struct list_elem * current = &cu;
-	for(; current != NULL; current = current->next)
-	{
-		if(cpid == list_entry(current, struct thread, elem)->tid)
-			return true;
-	}
-	return false;
-}
-		
-
+	
 
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
@@ -112,8 +97,16 @@ int
 process_wait (tid_t cpid) 
 {
   //while(1);
-	while(thread_current()->status != THREAD_DYING || still_running(cpid))
+	
+	int i = 1;
+	bool cond = still_running(cpid);
+	while(thread_current()->status != THREAD_DYING && cond)
 	{		
+		if(i % 10 == 0)
+		{
+			cond = still_running(cpid);
+		}
+		++i;
 		thread_yield();
 	}
 	return 0;
@@ -236,8 +229,6 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, void (**eip) (void), void **esp) 
 {
-	//printf("\nentered load\n");
-  printf("esp in load: %p\n", *esp);
 	struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
@@ -280,7 +271,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 		} */
 	
 	char * token = strtok_r(fn_copy, " ", save_ptr);
-	
   file = filesys_open (token);
   if (file == NULL) 
     {
@@ -489,10 +479,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp, const char * filename, char ** saveptr) 
 {
-  //printf("esp: %p\n", *esp);
 	uint8_t *kpage;
   bool success = false;
-
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
@@ -500,11 +488,10 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
       *esp = PHYS_BASE;
 		}
     else
-
 		{
         palloc_free_page (kpage);
     }
-	char * start_sp = (size_t)((size_t*)(*esp));
+	//char * start_sp = (size_t)((size_t*)(*esp));
   //return success;
 	 
 	 //declaring the initial states
@@ -516,8 +503,8 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
 	 int i, argc = 0; int arg_size = 1;
 	 //resizing arrays to fit all arguments
 	 
-	 //printf("after declaring initial states\n");
-	 token = strtok_r(filename, " ", saveptr); 
+	 
+	 token = strtok_r((char*)filename, " ", saveptr); 
 	 for(; token != NULL; token = strtok_r(NULL, " ", saveptr))
 	 {
 			 cont[argc] = token;
@@ -529,22 +516,16 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
 					argv = realloc(argv, arg_size * sizeof(char*));
 			 }
 	 }
-
 	
-	//printf("after resizing arrays\n");
 	 //writes arguments to the stack
 	 for(i = argc - 1; i >= 0; i--)
 	 {
-		 	printf("A.%i: %p\n", i, *esp);
 			 *esp -= strlen(cont[i]) + 1;
 			 argv[i] = *esp;
-			 printf(" %s \n", cont[i]);
 			 memcpy(*esp, cont[i], strlen(cont[i]) + 1);
-			 printf("B.%i: %p\n", i, *esp);
 	 }
-	 printf("1. esp: %p\n", *esp);
-	//printf("after writing args to stack\n");
 
+	
 	//Word alligns the stack
 	 argv[argc] = 0;
 	 i = (size_t)*esp % 4;
@@ -554,7 +535,6 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
 			memcpy(*esp, &argv[argc], i);
 	 }
 
-	printf("2. esp: %p\n", *esp);
 
 	 //Pushes addresses of arguments on the stack
 	 for(i = argc; i >= 0; i--)
@@ -562,20 +542,17 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
 		 *esp -= sizeof(char*);
 		 memcpy(*esp, &argv[i], sizeof(char*));
 	 }
-	 printf("3. esp: %p\n", *esp);
 
 	 //put argv on stack, the intial starting point of the arguments
 	 token = *esp; *esp -= sizeof(char**);
 	 memcpy(*esp, &token, sizeof(char**));
 	
-	 printf("4. esp: %p\n", *esp);
 
 	 //put argc on stack
 	 *esp -= sizeof(int); 
 	 memcpy(*esp, &argc, sizeof(int));
 	 *esp -= sizeof(void*);
 
-	 printf("5. esp: %p\n", *esp);
 
 	 memcpy(*esp, &argv[argc], sizeof(void*));
 	 free(argv), free(cont);
@@ -583,19 +560,15 @@ setup_stack (void **esp, const char * filename, char ** saveptr)
 	 char * buffer[1024];	
 	 
 	 //esp = (int)esp;
-	 //hex_dump(*esp, buffer, 1, true);
+
+	 //hex_dump(esp, buffer, 1024, true);
 		
 	 esp = (void*)esp;
-	 char * end_sp = (size_t)((size_t*)(*esp));
-	 int ind = 0;
+	 //char * end_sp = (size_t)((size_t*)(*esp));
+	 //int ind = 0;
 	 
 
-	 printf("end_sp: %p, start_sp: %p \n", end_sp, start_sp);
-	 //printf("esp: %p \n", *esp);
-	 //for(; (end_sp + ind) >= start_sp; ++ind)
-		 //printf(" %c ", *(end_sp + ind));
 	 
-	 //printf("end setup_stack\n");
 	 return success;
 }
 
