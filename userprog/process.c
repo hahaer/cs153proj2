@@ -38,15 +38,16 @@ process_execute (const char *file_name)
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
-    return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+    return -1;
+	int i = 0;
+	for(; *(file_name + i) != '\0'; ++i);
+	strlcpy(fn_copy, file_name, i+2);
+	*(fn_copy+i+2) = '\0';
 	
-	
-	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
 	if (tid == TID_ERROR)
 	{
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
 	}
 
 	return tid;
@@ -97,19 +98,20 @@ int
 process_wait (tid_t cpid) 
 {
   //while(1);
-	
 	int i = 1;
 	bool cond = still_running(cpid);
+	if(cond == false)
+	{
+		return -1;
+	}
+	int status = 0;
 	while(thread_current()->status != THREAD_DYING && cond)
 	{		
-		if(i % 10 == 0)
-		{
 			cond = still_running(cpid);
-		}
 		++i;
 		thread_yield();
 	}
-	return 0;
+	return waitingon[cpid];
 }
 
 /* Free the current process's resources. */

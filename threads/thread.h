@@ -11,9 +11,10 @@ struct file_struct
 {
 	int fd;
 	struct file * f;
+	bool active;
 };
 
-static struct file_struct * fs[200]; //malloc(200 * sizeof(file_struct));
+static struct file_struct fs[2000]; //malloc(200 * sizeof(file_struct));
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -91,11 +92,11 @@ typedef int tid_t;
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
 typedef void thread_func (void *aux);
-
+/*---------------------------------------------------------*/
 bool still_running(tid_t cpid);
+int waitingon[2000];
+/*----------------------*/
 
-
-//void schedule(void);
 
 struct list * get_all_list(void);
 //static void schedule(void);
@@ -110,6 +111,7 @@ struct thread
     struct list_elem allelem;           /* List element for all threads list. */
 		thread_func * function;             /* Custom function pointer */
     void * aux;
+		bool waited_on;
 		/* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

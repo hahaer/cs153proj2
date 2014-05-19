@@ -183,7 +183,6 @@ thread_create (const char *name, int priority,
   enum intr_level old_level;
 
   ASSERT (function != NULL);
-
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
   if (t == NULL)
@@ -192,7 +191,6 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
-
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack' 
      member cannot be observed. */
@@ -218,8 +216,6 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-	//printf("\n t_name %s \n", t->name);
-	//printf("\n t_func %p \n", kf->function);
 	t->function = kf->function;
 	t->aux = kf->aux;
 
@@ -346,11 +342,16 @@ still_running(tid_t cpid)
 		struct thread * t = list_entry(e, struct thread, allelem);
 		if(cpid == t->tid)
 		{
+
+			t->waited_on = true;
 			return true;
 		}
 	}
 	return false;
 }
+
+
+
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
@@ -496,7 +497,10 @@ init_thread (struct thread *t, const char *name, int priority)
   memset (t, 0, sizeof *t);
   t->status = THREAD_BLOCKED;
 	char * saveptr[100];
-  strlcpy (t->name, strtok_r(name, " ", saveptr), sizeof t->name);
+	char temp[200];
+	strlcpy(temp, name, 200);
+	char * token = strtok_r(temp, " ", saveptr);
+	strlcpy (t->name, token, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
